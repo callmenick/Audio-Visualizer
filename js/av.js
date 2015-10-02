@@ -1,87 +1,91 @@
 (function() {
 
-// Cache some variables
-var numParticles = 256;
-var colours = ['#ff0046', '#ffd700', '#99ff00', '#00ccff'];
-var nodes = [];
-var f = 10;
+  'use strict';
 
-// Cross browser audio context
-var AudioContext = window.AudioContext || window.webkitAudioContext;
-var context = new AudioContext;
+  /**
+   * v
+   * 
+   * @description The visualisation stage
+   */
+  var v = d3.select('#visualization');
 
-// Set up our analyzer
-var audio = document.querySelector('#audio');
+  /**
+   * defaults
+   *
+   * @description Some default variables
+   */
+  var numParticles = 256;
+  var colours = ['#ff0046', '#ffd700', '#99ff00', '#00ccff'];
+  var nodes = [];
+  var AudioContext = window.AudioContext || window.webkitAudioContext;
+  var context = new AudioContext;
+  var audio = document.querySelector('#audio');
+  
+  /**
+   * analyser
+   *
+   * @description The analyser
+   */
+  var analyser = context.createAnalyser();
+  analyser.fftSize = numParticles * 2;
+  
+  /**
+   * frequencyData
+   *
+   * @description Initializes the frequency data
+   */
+  var frequencyData = new Float32Array(analyser.frequencyBinCount);
 
-// Set up our analyser
-var analyser = context.createAnalyser();
-analyser.fftSize = numParticles * 2;
-
-// Create new frequency data array
-var frequencyData = new Float32Array(analyser.frequencyBinCount);
-
-// Listen for if audio can play, and connect source and analyser
-audio.addEventListener('canplay', function() {
+  /**
+   * source
+   *
+   * @description Hooks up the source and destination for the audio
+   */
   var source = context.createMediaElementSource(audio);
   source.connect(analyser);
   analyser.connect(context.destination);
 
-  // UNCOMMENT BELOW FOR PRODUCTION
-  // ++++++++++++++++++++++++++++++
-  setTimeout(function() {
-    document.querySelector('#init').classList.add('init--hidden');
-    audio.play();
-    d3.timer(pulse);
-    initGestures();
-  }, 2000);
-  
-  // COMMENT BELOW FOR PRODUCTION
-  // ++++++++++++++++++++++++++++
-  // document.querySelector('#init').classList.add('init--hidden');
-  // audio.play();
-  // d3.timer(pulse);
-  // initGestures();
-});
+  /**
+   * init
+   * 
+   * @description Initializes the visualization
+   */
+  var init = function() {
+    for (var i = 0; i < numParticles; i++) {
+      var cx = Math.random() * 100 + '%';
+      var cy = Math.random() * 100 + '%';
 
-// Set up visualization stage
-var v = d3.select('#visualization');
+      var node = v.append('circle')
+       .attr('class', 'node')
+       .attr('cx', cx)
+       .attr('cy', cy)
+       .attr('r', 2)
+       .attr('fill', colours[i % 4]);
 
-// Append num nodes to start
-for (var i = 0; i < numParticles; i++) {
-  var cx = Math.random() * 100 + '%';
-  var cy = Math.random() * 100 + '%';
-
-  var node = v.append('circle')
-   .attr('class', 'node')
-   .attr('cx', cx)
-   .attr('cy', cy)
-   .attr('r', 2)
-   .attr('fill', colours[i % 4]);
-
-  nodes.push(node);
-}
-
-// This is the pulse callback that gets passed into the d3 timer
-var pulse = function() {
-  analyser.getFloatFrequencyData(frequencyData);    
-  v.selectAll('.node')
-   .data(frequencyData)
-   .style('transform', function(d) {
-     return 'scale(' + Math.abs(d)/10 + ')';
-   });
-};
-
-// Gestures for mouse movement
-var initGestures = function() {
-  d3.select('body').on('mousemove', function(e) {
-    var mouseX = d3.event.x;
-    var mouseY = d3.event.y;
-
-    for (var i = 0; i < nodes.length; i++) {
-      var node = nodes[i];
-      
+      nodes.push(node);
     }
-  });
-};
+
+    setTimeout(function() {
+      document.querySelector('#init').classList.add('init--hidden');
+      audio.play();
+      d3.timer(pulse);
+    }, 2000);
+  };
+
+  /**
+   * pulse
+   * 
+   * @description Pulses all the nodes
+   */
+  var pulse = function() {
+    analyser.getFloatFrequencyData(frequencyData);    
+    v.selectAll('.node')
+     .data(frequencyData)
+     .style('transform', function(d) {
+       return 'scale(' + Math.abs(d)/10 + ')';
+     });
+  };
+
+  init();
 
 })();
